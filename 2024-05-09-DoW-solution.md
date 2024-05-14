@@ -85,3 +85,45 @@ or if you are only interested in the ID's
 ```
 curl -L --silent -H "Accept: application/json" "http://localhost:7009/api/v3/Datasets" | jq '.[].id'
 ```
+
+# The OAI-PMH Part
+Although we want to run the oai-pmh service inside a docker compose system, we begin with starting it with docker but w/o docker-compose. To do that, we only have to place the oai-pmh container into the docker compose network, we created above. 
+
+### Get our oai-pmh service 
+```
+git clone https://github.com/PatrickFuhrmann-HTWBerlin/oai-pmh-service
+cd oai-pmh-service
+```
+
+## Create the image
+```
+docker build -t oai-pmh-service .
+```
+## Run the image in the docker-compose network, but w/o docker compose yet.
+Get the docker compose network
+```
+patrick@training-pf-1:~$ docker network ls
+NETWORK ID     NAME                      DRIVER    SCOPE
+a05664f9c45b   bridge                    bridge    local
+045862b12457   host                      host      local
+5803d4092074   none                      null      local
+f7d437590153   proxy_default             bridge    local
+89b8214000c5   scicatlive-mini_default   bridge    local
+```
+So the network seems to be **scicatlive-mini_default**.
+
+Now start the docker image by hand, like this:
+```
+docker run \
+     --network scicatlive-mini_default \
+     -e DB_HOST=mongodb \
+     -p 7005:3001  \
+     oai-pmh-service 
+```
+Explaination:
+- *--network scicatlive-mini_default* places this docker container in the network which was created by the previous docker-compose system.
+- *-e DB_HOST=mongodb*. The oai-pmh system normally connects to localhost:27017, when running in a single host system. But as in docker-compose, the different containers behave like 'hosts', we have to set the hostname of the mongodb to *mongodb* as defined in the *services/mongodb/docker-compose.yaml' file.
+- *-p 7005:3001*: The local portnumber, the oai-phm services is listening to, is the 3001. This is defined in the production/host_config.json file. Here we redirect the outside portnumber *7005* to the inside portnumber *3001*.
+
+
+
